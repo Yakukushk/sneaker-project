@@ -5,6 +5,8 @@ import {Property} from "../../properties/property.js";
 import {useAuth} from "../../stores/auth.js";
 import {collection, doc, getDoc, onSnapshot, updateDoc} from "firebase/firestore";
 import {db} from "../../connection/firebase.js";
+import {minLength, minValue, required} from "@vuelidate/validators";
+import useVuelidate from "@vuelidate/core";
 
 export default defineComponent({
   name: "ListView",
@@ -13,28 +15,44 @@ export default defineComponent({
     const auth = useAuth();
     const prop = reactive(new Property({}, {
       container: 'container',
+      list: 'list'
     }));
     const valuesUpdate = reactive({
       name: "",
       price: 0
     });
+    const snackbar = ref(false);
+    const snackbarRemove = ref(false);
+    const timeout = ref( 2000);
     const selectedSneaker = ref(null);
     const dialog = ref(false);
     const itemsPerPage = ref(5);
     const currentPage = ref(1);
-
+    const rules = {
+      name: { required, minLength: minLength(3) },
+      price: { required, minValue: minValue(0) }
+    };
+    const v$ = useVuelidate(rules, valuesUpdate);
     const deleteSneaker = (id) => {
       sneakerStore.deleteSneaker(id).then((data) => {
         console.log("Item was deleted " + data);
+        snackbarRemove.value = true;
       }).catch((error) => {
         console.error(error);
       });
     };
 
     const updateDocument = async () => {
-      if (selectedSneaker.value) {
-        await sneakerStore.update(selectedSneaker.value, valuesUpdate);
-        dialog.value = false;
+      const result = await v$.value.$validate();
+      if(result) {
+        if (selectedSneaker.value) {
+          await sneakerStore.update(selectedSneaker.value, valuesUpdate);
+          snackbar.value = true;
+          dialog.value = false;
+        }
+      }
+      else {
+        console.error('Validation failed');
       }
     };
 
@@ -65,7 +83,11 @@ export default defineComponent({
       updateDocument,
       itemsPerPage,
       currentPage,
-      paginatedItems
+      paginatedItems,
+      v$,
+      snackbar,
+      timeout,
+      snackbarRemove
     };
   }
 });
@@ -74,14 +96,14 @@ export default defineComponent({
 <template>
   <div>
     <v-container fluid>
-      <v-card variant="outlined" class="mx-auto" max-width="500px">
+      <v-card variant="outlined" class="mx-auto" max-width="500px" v-motion-pop-visible-once>
         <v-card-title class="text-center text-h5 font-weight-bold">
           Inventory
           <v-divider></v-divider>
         </v-card-title>
 
-        <v-list>
-          <v-list-item v-for="item in paginatedItems" :key="item.id">
+        <v-list  :class="prop.classObject.list" >
+          <v-list-item  v-for="item in paginatedItems" :key="item.id" v-motion-slide-visible-once-left>
             <v-list-item-title>{{ item.name }}</v-list-item-title>
             <v-list-item-subtitle>{{ item.price }} $</v-list-item-subtitle>
             <v-list-item-action v-if="item.uid === auth.currentUser">
@@ -103,6 +125,10 @@ export default defineComponent({
                             v-model="valuesUpdate.name"
                             color="green"
                             label="Sneaker Name"
+                            :error-messages="v$.name.$errors.map(e => e.$message)"
+                            @blur="v$.name.$touch"
+                            @input="v$.name.$touch"
+                            required
                             variant="underlined"
                         ></v-text-field>
                         <v-text-field
@@ -110,6 +136,10 @@ export default defineComponent({
                             color="green"
                             label="Price"
                             type="number"
+                            :error-messages="v$.price.$errors.map(e => e.$message)"
+                            @blur="v$.price.$touch"
+                            @input="v$.price.$touch"
+                            required
                             variant="underlined"
                         ></v-text-field>
                       </v-container>
@@ -130,7 +160,37 @@ export default defineComponent({
             <v-divider class="mt-5"></v-divider>
           </v-list-item>
         </v-list>
+        <v-snackbar
+            v-model="snackbar"
+            :timeout="timeout"
+        >
+          Your item was updated
+          <template v-slot:actions>
+            <v-btn
+                color="green"
+                variant="text"
+                @click="snackbar = false"
+            >
+              Close
+            </v-btn>
+          </template>
+        </v-snackbar>
+          <v-snackbar
+              v-model="snackbarRemove"
+              :timeout="timeout"
+          >
+            Your item was removed
+            <template v-slot:actions>
+              <v-btn
+                  color="green"
+                  variant="text"
+                  @click="snackbarRemove = false"
+              >
+                Close
+              </v-btn>
+            </template>
 
+        </v-snackbar>
         <v-pagination
             v-model="currentPage"
             :length="Math.ceil(sneakerStore.sneakers.length / itemsPerPage)"
@@ -143,5 +203,8 @@ export default defineComponent({
 </template>
 
 <style scoped>
-
+.list {
+  overflow-x: hidden;
+  overflow: hidden;
+}
 </style>

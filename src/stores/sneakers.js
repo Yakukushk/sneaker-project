@@ -1,8 +1,8 @@
-import { defineStore } from "pinia";
-import { db } from '../connection/firebase.js';
-import { collection, addDoc, updateDoc, deleteDoc, onSnapshot, doc, getDoc } from 'firebase/firestore';
-import { ref, reactive } from "vue";
-import { useAuth } from "./auth.js";
+import {defineStore} from "pinia";
+import {db} from '../connection/firebase.js';
+import {collection, addDoc, updateDoc, deleteDoc, onSnapshot, doc, getDoc} from 'firebase/firestore';
+import {ref, reactive} from "vue";
+import {useAuth} from "./auth.js";
 
 export const useSneaker = defineStore('sneakers', () => {
     //variables
@@ -46,7 +46,7 @@ export const useSneaker = defineStore('sneakers', () => {
     const fetchSneakers = async () => {
         const docRef = collection(db, 'sneakers');
         onSnapshot(docRef, (querySnapshot) => {
-            sneakers.value = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            sneakers.value = querySnapshot.docs.map(doc => ({id: doc.id, ...doc.data()}));
         });
     };
 

@@ -13,6 +13,7 @@ import { createVuetify } from 'vuetify';
 import * as components from 'vuetify/components';
 import * as directives from 'vuetify/directives';
 import { aliases, mdi } from 'vuetify/iconsets/mdi';
+import {MotionPlugin} from "@vueuse/motion";
 
 const vuetify = createVuetify({
     components,
@@ -29,4 +30,5 @@ const app = createApp(App);
 app.use(vuetify);
 app.use(router);
 app.use(pinia);
+app.use(MotionPlugin);
 app.mount('#app')
