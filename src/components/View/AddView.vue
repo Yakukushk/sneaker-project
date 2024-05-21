@@ -21,7 +21,7 @@ export default defineComponent({
     const sneaker = useSneaker();
     const auth = useAuth();
     const snackbar = ref(false);
-    const timeout = ref(2000); // Ensure timeout is defined
+    const timeout = ref(2000);
 
     const rules = {
       name: { required, minLength: minLength(3) },
@@ -36,7 +36,8 @@ export default defineComponent({
         try {
           await sneaker.addSneaker();
           props.closeDialog();
-          snackbar.value = true; // Show snackbar on successful addition
+          snackbar.value = true;
+          v$.value.$reset();
         } catch (error) {
           console.error(error);
         }
@@ -51,7 +52,7 @@ export default defineComponent({
       sneaker,
       v$,
       snackbar,
-      timeout // Return timeout
+      timeout
     };
   }
 });
